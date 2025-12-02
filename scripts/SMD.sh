@@ -1,0 +1,2 @@
+--anormly_ratio 0.354 --num_epochs 3   --batch_size 64  --mode train --dataset SMD  --data_path dataset/SMD   --input_c 38 --output_c 38
+--anormly_ratio 0.354 --num_epochs 3   --batch_size 64     --mode test    --dataset SMD   --data_path dataset/SMD     --input_c 38 --output_c 38
