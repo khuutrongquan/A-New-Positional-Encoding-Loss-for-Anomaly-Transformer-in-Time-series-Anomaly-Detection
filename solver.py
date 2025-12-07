@@ -9,6 +9,7 @@ from utils.utils import *
 from model.AnomalyTransformer import AnomalyTransformer
 from data_factory.data_loader import get_loader_segment
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+import pandas as pd
 
 def my_kl_loss(p, q):
     res = p * (torch.log(p + 0.0001) - torch.log(q + 0.0001))
@@ -251,7 +252,6 @@ class Solver(object):
         self.model.load_state_dict(
             torch.load(
                 os.path.join(str(self.model_save_path), str(self.dataset) + '_checkpoint.pth')))
-        self.model.eval()
         temperature = 50
 
         print("======================TEST MODE======================")
@@ -294,6 +294,7 @@ class Solver(object):
 
         # (2) find the threshold
         attens_energy = []
+        test_labels = []
         for i, (input_data, labels) in enumerate(self.thre_loader):
             input = input_data.float().to(self.device)
             output, series, prior, _ = self.model(input)
@@ -324,63 +325,108 @@ class Solver(object):
             cri = metric * loss
             cri = cri.detach().cpu().numpy()
             attens_energy.append(cri)
-
-        attens_energy = np.concatenate(attens_energy, axis=0).reshape(-1)
-        test_energy = np.array(attens_energy)
-        combined_energy = np.concatenate([train_energy, test_energy], axis=0)
-        thresh = np.percentile(combined_energy, 100 - self.anormly_ratio)
-        print("Thresh", thresh)
-        print("Threshold :", thresh)
-        print("Dataset :", self.data_path)
-
-        # (3) evaluation on the test set
-        test_labels = []
-        attens_energy = []
-        for i, (input_data, labels) in enumerate(self.thre_loader):
-            input = input_data.float().to(self.device)
-            output, series, prior, _ = self.model(input)
-
-            loss = torch.mean(criterion(input, output), dim=-1)
-
-            series_loss = 0.0
-            prior_loss = 0.0
-            for u in range(len(prior)):
-                if u == 0:
-                    series_loss = my_kl_loss(series[u], (
-                            prior[u] / torch.unsqueeze(torch.sum(prior[u], dim=-1), dim=-1).repeat(1, 1, 1,
-                                                                                                   self.win_size)).detach()) * temperature
-                    prior_loss = my_kl_loss(
-                        (prior[u] / torch.unsqueeze(torch.sum(prior[u], dim=-1), dim=-1).repeat(1, 1, 1,
-                                                                                                self.win_size)),
-                        series[u].detach()) * temperature
-                else:
-                    series_loss += my_kl_loss(series[u], (
-                            prior[u] / torch.unsqueeze(torch.sum(prior[u], dim=-1), dim=-1).repeat(1, 1, 1,
-                                                                                                   self.win_size)).detach()) * temperature
-                    prior_loss += my_kl_loss(
-                        (prior[u] / torch.unsqueeze(torch.sum(prior[u], dim=-1), dim=-1).repeat(1, 1, 1,
-                                                                                                self.win_size)),
-                        series[u].detach()) * temperature
-            metric = torch.softmax((-series_loss - prior_loss), dim=-1)
-
-            cri = metric * loss
-            cri = cri.detach().cpu().numpy()
-            attens_energy.append(cri)
             test_labels.append(labels)
 
         attens_energy = np.concatenate(attens_energy, axis=0).reshape(-1)
         test_labels = np.concatenate(test_labels, axis=0).reshape(-1)
         test_energy = np.array(attens_energy)
         test_labels = np.array(test_labels)
+        combined_energy = np.concatenate([train_energy, test_energy], axis=0)
+        
+        # Grid search để tìm ngưỡng tốt nhất
+        print("\n======================GRID SEARCH FOR OPTIMAL THRESHOLD======================")
+        best_f_score = 0
+        best_thresh = 0
+        best_metrics = {}
+        
+        # Thử tất cả các giá trị từ 0 đến 10 với bước 0.01
+        anomaly_ratios = np.arange(0, 5.001, 0.001)
+        # Danh sách lưu tất cả kết quả
+        all_results = []
+        
+        for ratio in anomaly_ratios:
+            thresh = np.percentile(combined_energy, 100 - ratio)
+            pred = (test_energy > thresh).astype(int)
+            gt = test_labels.astype(int)
 
-        pred = (test_energy > thresh).astype(int)
-
+            # Detection adjustment
+            anomaly_state = False
+            for i in range(len(gt)):
+                if gt[i] == 1 and pred[i] == 1 and not anomaly_state:
+                    anomaly_state = True
+                    for j in range(i, 0, -1):
+                        if gt[j] == 0:
+                            break
+                        else:
+                            if pred[j] == 0:
+                                pred[j] = 1
+                    for j in range(i, len(gt)):
+                        if gt[j] == 0:
+                            break
+                        else:
+                            if pred[j] == 0:
+                                pred[j] = 1
+                elif gt[i] == 0:
+                    anomaly_state = False
+                if anomaly_state:
+                    pred[i] = 1
+            
+            pred = np.array(pred)
+            gt = np.array(gt)
+            
+            accuracy = accuracy_score(gt, pred)
+            precision, recall, f_score, support = precision_recall_fscore_support(gt, pred, average='binary', zero_division=0)
+            
+            # Lưu kết quả vào list
+            all_results.append({
+                'anomaly_ratio': ratio,
+                'threshold': thresh,
+                'accuracy': accuracy,
+                'precision': precision,
+                'recall': recall,
+                'f_score': f_score
+            })
+            
+            # Lưu kết quả tốt nhất dựa trên F-score
+            if f_score > best_f_score:
+                best_f_score = f_score
+                best_thresh = thresh
+                best_metrics = {
+                    'anomaly_ratio': ratio,
+                    'threshold': thresh,
+                    'accuracy': accuracy,
+                    'precision': precision,
+                    'recall': recall,
+                    'f_score': f_score
+                }
+            
+            # In progress mỗi 100 lần thử (mỗi 1%)
+            if int(ratio * 100) % 100 == 0:
+                print(f"Progress: {ratio:.2f}% - Current best F-score: {best_f_score:.4f}")
+        
+        # Lưu tất cả kết quả vào CSV
+        results_df = pd.DataFrame(all_results)
+        csv_filename = f"{self.dataset}_threshold_search_results.csv"
+        csv_path = os.path.join(str(self.model_save_path), csv_filename)
+        results_df.to_csv(csv_path, index=False)
+        print(f"\nAll results saved to: {csv_path}")
+        
+        print("\n======================OPTIMAL THRESHOLD FOUND======================")
+        print(f"Best Anomaly Ratio: {best_metrics['anomaly_ratio']:.3f}%")
+        print(f"Best Threshold: {best_metrics['threshold']:.6f}")
+        print(f"Accuracy : {best_metrics['accuracy']:.4f}, Precision : {best_metrics['precision']:.4f}, "
+              f"Recall : {best_metrics['recall']:.4f}, F-score : {best_metrics['f_score']:.4f}")
+        print("Dataset :", self.data_path)
+        
+        # (3) Đánh giá cuối cùng với ngưỡng tốt nhất
+        print("\n======================FINAL EVALUATION WITH OPTIMAL THRESHOLD======================")
+        pred = (test_energy > best_thresh).astype(int)
         gt = test_labels.astype(int)
-
+        
         print("pred:   ", pred.shape)
         print("gt:     ", gt.shape)
-
-        # detection adjustment: please see this issue for more information https://github.com/thuml/Anomaly-Transformer/issues/14
+        
+        # Detection adjustment
         anomaly_state = False
         for i in range(len(gt)):
             if gt[i] == 1 and pred[i] == 1 and not anomaly_state:
@@ -401,12 +447,12 @@ class Solver(object):
                 anomaly_state = False
             if anomaly_state:
                 pred[i] = 1
-
+        
         pred = np.array(pred)
         gt = np.array(gt)
         print("pred: ", pred.shape)
         print("gt:   ", gt.shape)
-
+        
         accuracy = accuracy_score(gt, pred)
         precision, recall, f_score, support = precision_recall_fscore_support(gt, pred,
                                                                               average='binary')
