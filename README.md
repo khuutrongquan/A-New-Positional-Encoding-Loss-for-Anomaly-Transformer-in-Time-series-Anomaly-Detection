@@ -45,6 +45,7 @@ Time-series anomaly detection (TSAD) is a critical component of modern automated
 
 ### Hyperparameters
 - We tune dataset-specific hyperparameters to maximize validation performance, including the initial learning rate, learning-rate scheduler, training epochs, and the latent dimensionality and TCN channel widths.
+
 ![Detailed hyperparameters](images/Hyperparameters.jpg)
 
 ### Hardware
