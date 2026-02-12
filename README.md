@@ -43,6 +43,9 @@ Time-series anomaly detection (TSAD) is a critical component of modern automated
 
 - Dataset link: [Datasets](https://drive.google.com/drive/folders/1yv1po9kwN9mpreh82qyh33HJgGPmUEkO?usp=drive_link)
 
+### Hyperparameters
+- We tune dataset-specific hyperparameters to maximize validation performance, including the initial learning rate, learning-rate scheduler, training epochs, and the latent dimensionality and TCN channel widths.
+![Detailed hyperparameters](images/Hyperparameters.jpg)
 
 ### Hardware
 - GPU: NVIDIA GeForce RTX 4050 GPU
