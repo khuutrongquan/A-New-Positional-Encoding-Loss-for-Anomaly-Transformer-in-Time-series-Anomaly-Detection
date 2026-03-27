@@ -86,7 +86,9 @@ Time-series anomaly detection (TSAD) is central to automated monitoring, where e
 
 <sup>a</sup>AI-Cybersecurity Lab (AIC Lab), FPT University, Ho Chi Minh, Vietnam.
 
+\* Corresponding author
+
 You can explore related research papers and works from our lab here: [AIC Lab](https://github.com/AIC-Lab-FUHCM)
 
-\* Corresponding author
+
 
