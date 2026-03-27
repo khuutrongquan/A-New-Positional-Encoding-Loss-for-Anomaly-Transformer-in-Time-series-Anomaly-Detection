@@ -3,3 +3,4 @@ dataset/
 *.npy
 *.pkl
 *.csv
+checkpoints/

@@ -121,7 +121,7 @@ class Solver(object):
     def build_model(self):
         self.model = AnomalyTransformer(win_size=self.win_size, enc_in=self.input_c, c_out=self.output_c, e_layers=3)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.num_epochs)      #Scheduler is called in train(), with datasets: MSL, 2D-Gesture, ECG-C (is commented)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.num_epochs//3)      #Scheduler is called in train(), with datasets: MSL, 2D-Gesture, ECG-C (is commented)
         if torch.cuda.is_available():
             self.model.cuda()
 

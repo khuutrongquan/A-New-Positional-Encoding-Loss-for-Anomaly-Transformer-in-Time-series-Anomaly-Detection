@@ -3,13 +3,13 @@
 This repository contains the implementation and experimental results of our research on enhancing Anomaly Transformer model with a new Positional Encoding (PE) loss.
 
 ## Abstract
-Time-series anomaly detection (TSAD) is a critical component of modern automated monitoring systems, where timely identification of unexpected behaviors is essential for preventing failures. Although Anomaly Transformer has become a strong baseline for TSAD, its performance remains constrained by the use of conventional positional encoding, which can induce positional duplication among input tokens. We introduce a positional encoding (PE) loss coupled with a learnable PE module that explicitly penalizes duplicated positional representations to enforce better temporal distinguishability. Extensive experiments on three benchmark datasets---PSM, MSL, and SMAP---demonstrate that our approach consistently improves detection performance, yielding $F_1$ gains of 0.76, 0.63, and 0.21 percentage points, respectively, over the Anomaly Transformer baseline. These results indicate that regularizing positional representations is an effective and general strategy for enhancing Transformer-based time-series anomaly detectors.
+Time-series anomaly detection (TSAD) is central to automated monitoring, where early detection of unexpected behaviors helps prevent system failures. Despite its strong performance, Anomaly Transformer remains limited by conventional positional encoding, which can cause positional duplication across input tokens and weaken temporal separability. To address this issue, we propose a learnable positional encoding (PE) module trained with a PE loss that explicitly penalizes duplicated positional representations, thereby improving temporal distinguishability. Experiments on three benchmarks---PSM, MSL, and SMAP---show consistent gains over the Anomaly Transformer baseline, improving F$_1$ by 0.76, 0.31, and 0.20 percentage points, respectively. These results suggest that regularizing positional representations is a simple and general way to strengthen Transformer-based TSAD.
 
 ## Main Contributions
 
 1. **Overall Architecture** 
    - Using Anomaly Transformer model as baseline, we propose a new PE loss to reduce the positional duplication minimally.
-   - Achieving final results at $F_1$: 98.65\% for PSM, 94.22\% for MSL and 96.90\% for SMAP. 
+   - Achieving final results at $F_1$: 98.65\% for PSM, 93.90\% for MSL and 96.89\% for SMAP. 
    
 ![Proposed Anomaly Transformer model](images/ProposedAnomalyTransformer.jpg)
 
@@ -37,7 +37,7 @@ Time-series anomaly detection (TSAD) is a critical component of modern automated
 ## Experimental Results
 
 ### Datasets
-- Input datasets consist of eleven datasets (ECG-A => ECG-F, 2D-Gesture, PSM, SMD, MSL, SMAP)
+- Input datasets consist of eleven datasets (ECG-A, ECG-B, ECG-C, ECG-D, ECG-E, ECG-F, 2D-Gesture, PSM, SMD, MSL, SMAP)
 
 ![Table of Detailed datasets](images/TableOfDetailedDatasets.jpg)
 
@@ -47,6 +47,11 @@ Time-series anomaly detection (TSAD) is a critical component of modern automated
 - We tune dataset-specific hyperparameters to maximize validation performance, including the initial learning rate, learning-rate scheduler, training epochs, and the latent dimensionality and TCN channel widths.
 
 ![Detailed hyperparameters](images/Hyperparameters.jpg)
+
+### Comparison of performance with state-of-the-art methods
+- We compare our method with 11 other approaches on 5 different categories of datasets.
+
+![Performance Comparison](images/Performance_Comparison.jpg)
 
 ### Hardware
 - GPU: NVIDIA GeForce RTX 4050 GPU
@@ -76,10 +81,13 @@ Time-series anomaly detection (TSAD) is a critical component of modern automated
 
 ## Authors
 
-- Khuu Trong Quan<sup>1</sup> (khuutrongquan220405@gmail.com)
-- Huynh Cong Viet Ngu<sup>2,</sup>* (nguhcv@fe.edu.vn)
+- Khuu Trong Quan<sup>a</sup> (khuutrongquan220405@gmail.com)
+- Huynh Cong Viet Ngu<sup>a,</sup>* (nguhcv@fe.edu.vn)
 
-<sup>1</sup>Department of Software Engineering, FPT University, Ho Chi Minh, Vietnam  
-<sup>2</sup>Department of Computing Fundamental, FPT University, Ho Chi Minh, Vietnam  
+<sup>a</sup>AI-Cybersecurity Lab (AIC Lab), FPT University, Ho Chi Minh, Vietnam.
+
+You can explore related research papers and works from our lab here:
+
+[AIC Lab](https://github.com/AIC-Lab-FUHCM)
 \* Corresponding author
 
